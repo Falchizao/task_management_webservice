@@ -114,3 +114,16 @@ pub async fn submit_task(
         Err(_) => Err(TaskError::TaskCreationFailure)
     }
 }
+
+#[put("/task/{task_global_id}/start")]
+pub async fn start_task(
+    ddb_repo: Data<DDBRepository>, 
+    task_identifier: Path<TaskIdentifier>
+) -> Result<Json<TaskIdentifier>, TaskError> {
+    state_transition(
+        ddb_repo, 
+        task_identifier.into_inner().task_global_id, 
+        TaskState::InProgress, 
+        None
+    ).await
+}
