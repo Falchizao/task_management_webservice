@@ -155,3 +155,16 @@ pub async fn fail_task(
     ).await
 }
 
+#[put("/task/{task_global_id}/complete")]
+pub async fn complete_task(
+    ddb_repo: Data<DDBRepository>, 
+    task_identifier: Path<TaskIdentifier>,
+    completion_request: Json<TaskCompletionRequest>
+) -> Result<Json<TaskIdentifier>, TaskError> {
+    state_transition(
+        ddb_repo, 
+        task_identifier.into_inner().task_global_id, 
+        TaskState::Completed, 
+        Some(completion_request.result_file.clone())
+    ).await
+}
