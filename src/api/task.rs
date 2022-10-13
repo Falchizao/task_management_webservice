@@ -29,6 +29,30 @@ pub struct SubmitTaskRequest {
     source_file: String
 }
 
+#[derive(Debug, Display)]
+pub enum TaskError {
+    TaskNotFound,
+    TaskUpdateFailure,
+    TaskCreationFailure,
+    BadTaskRequest
+}
+
+impl ResponseError for TaskError {
+    fn error_response(&self) -> HttpResponse {
+        HttpResponse::build(self.status_code())
+            .insert_header(ContentType::json())
+            .body(self.to_string())
+    }
+
+    fn status_code(&self) -> StatusCode {
+        match self {
+            TaskError::TaskNotFound => StatusCode::NOT_FOUND,
+            TaskError::TaskUpdateFailure => StatusCode::FAILED_DEPENDENCY,
+            TaskError::TaskCreationFailure => StatusCode::FAILED_DEPENDENCY,
+            TaskError::BadTaskRequest => StatusCode::BAD_REQUEST
+        }
+    }
+}
 
 #[get("/activity/{activity_global_id}")]
 pub async fn get_task(
