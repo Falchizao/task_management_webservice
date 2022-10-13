@@ -9,6 +9,7 @@ use actix_web::{
     HttpResponse,
     http::{header::ContentType, StatusCode}
 };
+use crate::repository::ddb::DDBRepository;
 use serde::{Serialize, Deserialize};
 use derive_more::{Display};
 
@@ -66,5 +67,23 @@ pub async fn get_task(
     match tsk {
         Some(tsk) => Ok(Json(tsk)),
         None => Err(TaskError::TaskNotFound)
+    }
+}
+
+#[post("/activity")]
+pub async fn submit_task(
+    ddb_repo: Data<DDBRepository>,
+    request: Json<SubmitTaskRequest>
+) -> Result<Json<TaskIdentifier>, TaskError> {
+    let task = Task::new (
+        request.user_id.clone(),
+        request.task_type.clone(),
+        request.source_file.clone(),
+    );
+
+    let task_identifier = task.get_global_id();
+    match ddb_repo.put_task(task).await {
+        Ok(()) => Ok(Json(TaskIdentifier { task_global_id: task_identifier })),
+        Err(_) => Err(TaskError::TaskCreationFailure)
     }
 }
