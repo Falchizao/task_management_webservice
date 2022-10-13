@@ -140,3 +140,18 @@ pub async fn pause_task(
         None
     ).await
 }
+
+
+#[put("/task/{task_global_id}/fail")]
+pub async fn fail_task(
+    ddb_repo: Data<DDBRepository>, 
+    task_identifier: Path<TaskIdentifier>
+) -> Result<Json<TaskIdentifier>, TaskError> {
+    state_transition(
+        ddb_repo, 
+        task_identifier.into_inner().task_global_id, 
+        TaskState::Failed, 
+        None
+    ).await
+}
+
