@@ -15,7 +15,7 @@ use derive_more::{Display};
 
 #[derive(Deserialize, Serialize)]
 pub struct TaskIdentifier {
-    activity_global_id: String,
+    task_global_id: String,
 }
 
 #[derive(Deserialize)]
@@ -55,13 +55,13 @@ impl ResponseError for TaskError {
     }
 }
 
-#[get("/activity/{activity_global_id}")]
+#[get("/task/{task_global_id}")]
 pub async fn get_task(
     ddb_repo: Data<DDBRepository>, 
     task_identifier: Path<TaskIdentifier>
 ) -> Result<Json<Task>, TaskError> {
     let tsk = ddb_repo.get_task(
-        task_identifier.into_inner().activity_global_id
+        task_identifier.into_inner().task_global_id
     ).await;
 
     match tsk {
@@ -70,7 +70,34 @@ pub async fn get_task(
     }
 }
 
-#[post("/activity")]
+async fn state_transition(
+    ddb_repo: Data<DDBRepository>, 
+    task_global_id: String,
+    new_state: TaskState,
+    result_file: Option<String>
+) -> Result<Json<TaskIdentifier>, TaskError> {
+    let mut task = match ddb_repo.get_task(
+        task_global_id
+    ).await {
+        Some(task) => task,
+        None => return Err(TaskError::TaskNotFound)
+    };
+
+    if !task.can_transition_to(&new_state) {
+        return Err(TaskError::BadTaskRequest);
+    };
+    
+    task.state = new_state;
+    task.result_file = result_file;
+
+    let task_identifier = task.get_global_id();
+    match ddb_repo.put_task(task).await {
+        Ok(()) => Ok(Json(TaskIdentifier { task_global_id: task_identifier })),
+        Err(_) => Err(TaskError::TaskUpdateFailure)
+    }
+}
+
+#[post("/task")]
 pub async fn submit_task(
     ddb_repo: Data<DDBRepository>,
     request: Json<SubmitTaskRequest>
