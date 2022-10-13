@@ -1,3 +1,6 @@
+use crate::model::task::Task;
+use crate::model::task::TaskState;
+use crate::repository::ddb::DDBRepository;
 use actix_web::{
     get, 
     post, 
@@ -9,7 +12,6 @@ use actix_web::{
     HttpResponse,
     http::{header::ContentType, StatusCode}
 };
-use crate::repository::ddb::DDBRepository;
 use serde::{Serialize, Deserialize};
 use derive_more::{Display};
 
